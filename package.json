@@ -2,7 +2,7 @@
   "private": true,
   "displayName": "Central Heating",
   "name": "homebridge-central-heating",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Whole home heating control",
   "license": "Apache-2.0",
   "repository": {
