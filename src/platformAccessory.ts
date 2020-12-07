@@ -37,12 +37,12 @@ export class HeatingAccessory {
     this.service.setCharacteristic(this.platform.Characteristic.Name, accessory.context.device.displayName);
       // see https://developers.homebridge.io/#/service/Thermostat
     this.service.getCharacteristic(this.platform.Characteristic.CurrentHeatingCoolingState)
-      .on('get', this.getHeatingCoolingState.bind(this))
-      .setProps({maxValue: this.platform.Characteristic.TargetHeatingCoolingState.HEAT});
+      .on('get', this.getHeatingCoolingState.bind(this));
 
     this.service.getCharacteristic(this.platform.Characteristic.TargetHeatingCoolingState)
       .on('get', this.getTargetHeatingCoolingState.bind(this))
-      .on('set', this.setTargetHeatingCoolingState.bind(this));
+      .on('set', this.setTargetHeatingCoolingState.bind(this))
+      .setProps({maxValue: this.platform.Characteristic.TargetHeatingCoolingState.HEAT});
    
     this.service.getCharacteristic(this.platform.Characteristic.CurrentTemperature)
       .on('get', this.getCurrentTemperature.bind(this));
