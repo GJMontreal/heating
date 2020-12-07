@@ -45,7 +45,8 @@ export class HeatingAccessory {
       .setProps({maxValue: this.platform.Characteristic.TargetHeatingCoolingState.HEAT});
    
     this.service.getCharacteristic(this.platform.Characteristic.CurrentTemperature)
-      .on('get', this.getCurrentTemperature.bind(this));
+      .on('get', this.getCurrentTemperature.bind(this))
+      .setProps({maxValue: 30});
 
     this.service.getCharacteristic(this.platform.Characteristic.TargetTemperature)
       .on('get', this.getTargetTemperature.bind(this))
