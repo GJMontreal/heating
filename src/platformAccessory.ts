@@ -47,6 +47,11 @@ export class HeatingAccessory {
     this.service.getCharacteristic(this.platform.Characteristic.CurrentTemperature)
       .on('get', this.getCurrentTemperature.bind(this));
 
+    this.service.getCharacteristic(this.platform.Characteristic.TargetTemperature)
+      .on('get', this.getTargetTemperature.bind(this))
+      .on('set', this.setTargetHeatingCoolingState.bind(this))
+      .setProps({maxValue: 30});
+
     this.service.getCharacteristic(this.platform.Characteristic.TemperatureDisplayUnits)
       .on('get', this.getDisplayUnits.bind(this))
       .on('set', this.getDisplayUnits.bind(this));
