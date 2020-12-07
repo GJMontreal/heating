@@ -11,11 +11,11 @@ export class HeatingAccessory {
   private service: Service;
 
   private states = {
-    HeatingCoolingState: 0,
-    TargetHeatingCoolingState: 0,
+    HeatingCoolingState: this.platform.Characteristic.CurrentHeatingCoolingState.OFF,
+    TargetHeatingCoolingState: this.platform.Characteristic.CurrentHeatingCoolingState.OFF,
     CurrentTemperature: 20,
     TargetTemperature: 20,
-    DisplayUnits:1
+    DisplayUnits: this.platform.Characteristic.TemperatureDisplayUnits.CELSIUS
   };
 
   constructor(
@@ -35,10 +35,10 @@ export class HeatingAccessory {
     // set the service name, this is what is displayed as the default name on the Home app
     // in this example we are using the name we stored in the `accessory.context` in the `discoverDevices` method.
     this.service.setCharacteristic(this.platform.Characteristic.Name, accessory.context.device.displayName);
-
       // see https://developers.homebridge.io/#/service/Thermostat
     this.service.getCharacteristic(this.platform.Characteristic.CurrentHeatingCoolingState)
-      .on('get', this.getHeatingCoolingState.bind(this));
+      .on('get', this.getHeatingCoolingState.bind(this))
+      .setProps({maxValue: this.platform.Characteristic.TargetHeatingCoolingState.HEAT});
 
     this.service.getCharacteristic(this.platform.Characteristic.TargetHeatingCoolingState)
       .on('get', this.getTargetHeatingCoolingState.bind(this))
