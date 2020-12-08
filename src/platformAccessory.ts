@@ -1,5 +1,4 @@
-import { Service, PlatformAccessory, CharacteristicValue, CharacteristicSetCallback, CharacteristicGetCallback } from 'homebridge';
-
+import { Service, PlatformAccessory, Logger, CharacteristicValue, CharacteristicSetCallback, CharacteristicGetCallback } from 'homebridge';
 import { HeatingPlatform } from './platform';
 
 /**
@@ -8,6 +7,9 @@ import { HeatingPlatform } from './platform';
  * Each accessory may expose multiple services of different service types.
  */
 export class HeatingAccessory {
+  private subscriber = redis.createClient();
+  private client = redis.createClient();
+
   private service: Service;
 
   private states = {
@@ -21,6 +23,7 @@ export class HeatingAccessory {
   constructor(
     private readonly platform: HeatingPlatform,
     private readonly accessory: PlatformAccessory,
+    public readonly log: Logger
   ) {
 
     // set accessory information
@@ -50,12 +53,49 @@ export class HeatingAccessory {
 
     this.service.getCharacteristic(this.platform.Characteristic.TargetTemperature)
       .on('get', this.getTargetTemperature.bind(this))
-      .on('set', this.setTargetHeatingCoolingState.bind(this))
+      .on('set', this.setTargetTemperature.bind(this))
       .setProps({maxValue: 30});
 
     this.service.getCharacteristic(this.platform.Characteristic.TemperatureDisplayUnits)
       .on('get', this.getDisplayUnits.bind(this))
       .on('set', this.getDisplayUnits.bind(this));
+
+      this.setupRedis();
+  }
+
+  setupRedis() {
+    this.subscriber.on("message", this.handleSubscribeMessage.bind(this))
+    
+    
+    var channel = `${this.accessory.UUID}:currentTemperature`
+    this.subscriber.subscribe(channel);
+    console.log(`${this.accessory.displayName} subscribing ${channel}`);
+
+    channel = `${this.accessory.UUID}:heatingCoolingState`
+    this.subscriber.subscribe(channel);
+    console.log(`${this.accessory.displayName} subscribing ${channel}`);
+    //uuid:curentTemperature
+    //uuid:targetTemperature
+
+    // client.set(this.accessory.UUID);
+    // client.publish(this.accessory.UUID);
+  }
+
+  handleSubscribeMessage(channel: String, message: any ) {
+    //parse the message removing the uuid
+    //we should build a message dispatcher which takes a method and a channel name
+    console.log(`channel: ${channel}`);
+    console.log(`accesssory: ${this.accessory.displayName}`);
+    var subStrings = channel.split(":");
+    if (subStrings[1] == "currentTemperature") {  
+      var newValue = message as number;
+      this.states.CurrentTemperature = newValue;
+      this.service.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, newValue);
+    } else if (subStrings[1] == "heatingCoolingState") {
+      var newValue = message as number;
+      this.states.HeatingCoolingState = newValue;
+      this.service.updateCharacteristic(this.platform.Characteristic.CurrentHeatingCoolingState, newValue);
+    }
   }
 
   getHeatingCoolingState(callback: CharacteristicGetCallback) {
@@ -76,7 +116,11 @@ export class HeatingAccessory {
   }
 
   setTargetTemperature(value: CharacteristicValue, callback: CharacteristicSetCallback) {
+
     this.states.TargetTemperature = value as number;
+    var channel = `${this.accessory.UUID}:targetTemperature`
+    this.client.publish(channel, value as number);
+    this.client.set(channel, value as number);
     callback(null);
   }
 
