@@ -128,12 +128,14 @@ export class HeatingAccessory {
   getLastValues() {
     var path = `/home/sensors/${this.accessory.context.device.identifier}`;
     var channel = `${path}/target_temperature`;
-    var message = this.client.get(channel);
-    this.handleTargetTemperature(message);
-
+    this.client.get(channel,(err, reply)=>{
+      this.handleTargetTemperature(reply);
+    });
+    
     channel = `${path}/target_heatingcooling_state`;
-    message  = this.client.get(channel);
-    this.handleTargetHeatingCoolingState(message);
+    this.client.get(channel,(err, reply)=>{
+      this.handleTargetHeatingCoolingState(reply);
+    });
   }
 
   setupRedisSubscriber(subscriber: any) {
