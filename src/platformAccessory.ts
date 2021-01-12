@@ -1,12 +1,12 @@
 import { Service, PlatformAccessory, Logger, CharacteristicValue, CharacteristicSetCallback, CharacteristicGetCallback } from 'homebridge';
 import { HeatingPlatform } from './platform';
-import { RedisConfig, ThermostatConfig} from './config';
+import { RedisConfig } from './config';
 
 import { deserialize } from 'class-transformer';
 
-const redis = require("redis");
+import redis = require('redis');
 
-declare type RedisMessageHandler = (channel: String, value: any) => void;
+declare type RedisMessageHandler = (channel: string, value: any) => void;
 
 class TemperatureMessage {
   value: number;
@@ -14,7 +14,7 @@ class TemperatureMessage {
 
   constructor (
     value: number,
-    units: string
+    units: string,
   ){
     this.units = units;
     this.value = value;
@@ -23,12 +23,12 @@ class TemperatureMessage {
 class MessageHandler {
   constructor (
   readonly channel: string,
-  readonly handler: RedisMessageHandler
+  readonly handler: RedisMessageHandler,
   ){
 
   }
 
-  execute(message: any) {
+  execute(message: string) {
     this.handler(this.channel, message);
   }
 }
@@ -40,10 +40,10 @@ class MessageDispatcher {
     this.handlers[handler.channel] = handler;
   }
 
-  dispatchMessage(channel: String, message: any){
-    let channelParts = channel.split("/");
-    let handler = this.handlers[channelParts.slice(-1)[0]];
-    if(handler != null){
+  dispatchMessage(channel: string, message: string){
+    const channelParts = channel.split('/');
+    const handler = this.handlers[channelParts.slice(-1)[0]];
+    if(handler !== null){
       handler.execute(message);
     } else {
       console.log(`unhandled channel: ${channelParts.slice(-1)[0]} message: ${message}`);
@@ -60,7 +60,7 @@ export class HeatingAccessory {
 
   private messageDispatcher = new MessageDispatcher();
   private service: Service;
-  private subscriber: any; 
+  private subscriber: any; //I don't know what type redis subscribers are
   private client: any;
   private states = {
     HeatingCoolingState: this.platform.Characteristic.CurrentHeatingCoolingState.OFF,
@@ -68,7 +68,7 @@ export class HeatingAccessory {
     CurrentTemperature: 20,
     TargetTemperature: 20,
     DisplayUnits: this.platform.Characteristic.TemperatureDisplayUnits.CELSIUS,
-    CurrentRelativeHumidity: 30
+    CurrentRelativeHumidity: 30,
   };
 
   //we need to pass in information about the redis server
@@ -76,14 +76,14 @@ export class HeatingAccessory {
     private readonly platform: HeatingPlatform,
     private readonly accessory: PlatformAccessory,
     public readonly log: Logger,
-    private readonly redisConfig: RedisConfig
+    private readonly redisConfig: RedisConfig,
   ) {
     //this needs to be wrapped in a try handler
     try{
-      this.subscriber = redis.createClient(redisConfig.port,redisConfig.host);
-      this.client = redis.createClient(redisConfig.port,redisConfig.host);
+      this.subscriber = redis.createClient(redisConfig.port, redisConfig.host);
+      this.client = redis.createClient(redisConfig.port, redisConfig.host);
     } catch(error) {
-      log.info(`couldn't connect to redis server`,error);
+      log.info(`couldn't connect to redis server${error}`);
     }
     // set accessory information
     this.accessory.getService(this.platform.Service.AccessoryInformation)!
@@ -91,11 +91,12 @@ export class HeatingAccessory {
       .setCharacteristic(this.platform.Characteristic.Model, 'T-1')
       .setCharacteristic(this.platform.Characteristic.SerialNumber, '123ABC');
 
-    this.service = this.accessory.getService(this.platform.Service.Thermostat) || this.accessory.addService(this.platform.Service.Thermostat);
+    this.service = this.accessory.getService(this.platform.Service.Thermostat) 
+    || this.accessory.addService(this.platform.Service.Thermostat);
     // set the service name, this is what is displayed as the default name on the Home app
     // in this example we are using the name we stored in the `accessory.context` in the `discoverDevices` method.
     this.service.setCharacteristic(this.platform.Characteristic.Name, accessory.context.device.name);
-      // see https://developers.homebridge.io/#/service/Thermostat
+    // see https://developers.homebridge.io/#/service/Thermostat
     this.service.getCharacteristic(this.platform.Characteristic.CurrentHeatingCoolingState)
       .on('get', this.getHeatingCoolingState.bind(this));
 
@@ -106,12 +107,12 @@ export class HeatingAccessory {
    
     this.service.getCharacteristic(this.platform.Characteristic.CurrentTemperature)
       .on('get', this.getCurrentTemperature.bind(this))
-      .setProps({maxValue: 30,minStep: 0.1});
+      .setProps({maxValue: 30, minStep: 0.1});
 
     this.service.getCharacteristic(this.platform.Characteristic.TargetTemperature)
       .on('get', this.getTargetTemperature.bind(this))
       .on('set', this.setTargetTemperature.bind(this))
-      .setProps({maxValue: 30,minStep: 0.1});
+      .setProps({maxValue: 30, minStep: 0.1});
 
     this.service.getCharacteristic(this.platform.Characteristic.TemperatureDisplayUnits)
       .on('get', this.getDisplayUnits.bind(this))
@@ -119,39 +120,39 @@ export class HeatingAccessory {
       .setProps({minStep: 0.1});
 
     this.service.getCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity)
-      .on('get', this.getCurrentRelativeHumidity.bind(this))
+      .on('get', this.getCurrentRelativeHumidity.bind(this));
     
     this.setupRedisSubscriber(this.subscriber);
-    this.getLastValues()
+    this.getLastValues();
   }
 
   getLastValues() {
-    var path = `/home/sensors/${this.accessory.context.device.identifier}`;
-    var channel = `${path}/target_temperature`;
-    this.client.get(channel,(err, reply)=>{
+    const path = `/home/sensors/${this.accessory.context.device.identifier}`;
+    let channel = `${path}/target_temperature`;
+    this.client.get(channel, (err, reply)=>{
       this.handleTargetTemperature(reply);
     });
     
     channel = `${path}/target_heatingcooling_state`;
-    this.client.get(channel,(err, reply)=>{
+    this.client.get(channel, (err, reply)=>{
       this.handleTargetHeatingCoolingState(reply);
     });
 
     channel = `${path}/heating_cooling_state`;
-    this.client.get(channel,(err, reply)=>{
-      this.handleHeatingCoolingState("",reply)
-    })
+    this.client.get(channel, (err, reply)=>{
+      this.handleHeatingCoolingState('', reply);
+    });
 
   }
 
   setupRedisSubscriber(subscriber: any) {
-    subscriber.on("message", this.handleMessage.bind(this))
-    var path = `/home/sensors/${this.accessory.context.device.identifier}`;
-    var channel = `${path}/current_temperature`;
+    subscriber.on('message', this.handleMessage.bind(this));
+    const path = `/home/sensors/${this.accessory.context.device.identifier}`;
+    let channel = `${path}/current_temperature`;
     subscriber.subscribe(channel);
     this.log.debug(`${this.accessory.displayName} subscribing ${channel}`);
 
-    channel = `${path}/heating_cooling_state`
+    channel = `${path}/heating_cooling_state`;
     subscriber.subscribe(channel);
     this.log.debug(`${this.accessory.displayName} subscribing ${channel}`);
 
@@ -159,48 +160,48 @@ export class HeatingAccessory {
     subscriber.subscribe(channel);
     this.log.debug(`${this.accessory.displayName} subscribing ${channel}`);
    
-    this.messageDispatcher.addHandler(new MessageHandler("heating_cooling_state",this.handleHeatingCoolingState.bind(this)));
-    this.messageDispatcher.addHandler(new MessageHandler("current_temperature",this.handleCurrentTemperature.bind(this)));
-    this.messageDispatcher.addHandler(new MessageHandler("current_relative_humidity",this.handleCurrentRelativeHumidity.bind(this)));
+    this.messageDispatcher.addHandler(new MessageHandler('heating_cooling_state', this.handleHeatingCoolingState.bind(this)));
+    this.messageDispatcher.addHandler(new MessageHandler('current_temperature', this.handleCurrentTemperature.bind(this)));
+    this.messageDispatcher.addHandler(new MessageHandler('current_relative_humidity', this.handleCurrentRelativeHumidity.bind(this)));
   }
 
-  handleHeatingCoolingState(channel: String, message: any) {
-    var newValue = message as number;
+  handleHeatingCoolingState(channel: string, message: any) {
+    const newValue = message as number;
     this.states.HeatingCoolingState = newValue;
     this.service.updateCharacteristic(this.platform.Characteristic.CurrentHeatingCoolingState, newValue);
   }
 
   handleTargetHeatingCoolingState(message: any) {
-    var newValue = message as number;
+    const newValue = message as number;
     this.states.TargetHeatingCoolingState = newValue;
     this.service.updateCharacteristic(this.platform.Characteristic.TargetHeatingCoolingState, newValue);
   }
 
-  handleCurrentTemperature(channel: String, message: any) {
-    let tempMessage = deserialize(TemperatureMessage,message);
+  handleCurrentTemperature(channel: string, message: any) {
+    const tempMessage = deserialize(TemperatureMessage, message);
     //homekit only handles .5 increments
     // var newValue = Math.round(tempMessage.value * 10 ) / 10 ;
-    var newValue = tempMessage.value;
+    const newValue = tempMessage.value;
     this.states.CurrentTemperature = newValue;
     this.service.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, newValue);
   }
 
-  handleTargetTemperature(message: any) {
-    let tempMessage = deserialize(TemperatureMessage,message);
-    var newValue = tempMessage.value;
+  handleTargetTemperature(message: string) {
+    const tempMessage = deserialize(TemperatureMessage, message);
+    const newValue = tempMessage.value;
     this.states.TargetTemperature = newValue;
     this.service.updateCharacteristic(this.platform.Characteristic.TargetTemperature, newValue);
   }
 
-  handleCurrentRelativeHumidity(channel: String, message: any){
-    let tempMessage = deserialize(TemperatureMessage,message);
+  handleCurrentRelativeHumidity(channel: string, message: any){
+    const tempMessage = deserialize(TemperatureMessage, message);
     //homekit only handles .5 increments
-    var newValue = Math.round(tempMessage.value * 10 ) / 10 ;
+    const newValue = Math.round(tempMessage.value * 10 ) / 10 ;
     this.states.CurrentRelativeHumidity = newValue;
     this.service.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, newValue);
   }
 
-  handleMessage(channel: String, message: any ) {
+  handleMessage(channel: string, message: any ) {
     //we need some error checking  
     this.messageDispatcher.dispatchMessage(channel, message);
   }
@@ -216,10 +217,10 @@ export class HeatingAccessory {
   setTargetHeatingCoolingState(value: CharacteristicValue, callback: CharacteristicSetCallback) {
     this.states.TargetHeatingCoolingState = value as number;
     
-    var path = `/home/sensors/${this.accessory.context.device.identifier}`;
-    var channel = `${path}/target_heatingcooling_state`;
+    const path = `/home/sensors/${this.accessory.context.device.identifier}`;
+    const channel = `${path}/target_heatingcooling_state`;
 
-    var message = value as number;
+    const message = value as number;
 
     this.client.publish(channel, message);
     this.client.set(channel, message);
@@ -238,10 +239,10 @@ export class HeatingAccessory {
 
     this.states.TargetTemperature = value as number;
 
-    var path = `/home/sensors/${this.accessory.context.device.identifier}`;
-    var channel = `${path}/target_temperature`
+    const path = `/home/sensors/${this.accessory.context.device.identifier}`;
+    const channel = `${path}/target_temperature`;
 
-    var message = JSON.stringify(new TemperatureMessage(value as number, "C"));
+    const message = JSON.stringify(new TemperatureMessage(value as number, 'C'));
 
     this.client.publish(channel, message);
     this.client.set(channel, message);
