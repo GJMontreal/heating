@@ -1,16 +1,72 @@
 {
   "pluginAlias": "CentralHeating",
   "pluginType": "platform",
+  "headerDisplay": "Thermostats are exposed as individual accessories",
   "singular": true,
   "schema": {
-    "type": "object",
-    "properties": {
-      "name": {
-        "title": "Name",
-        "type": "string",
-        "required": true,
-        "default": "Central Heating"
+    "name": {
+      "title": "Name",
+      "type": "string",
+      "required": true,
+      "default": "Central Heating" 
+    },
+    "redis":{
+        "title":"Redis Server",
+    "type":"object",
+      "properties":{
+        "host":{
+          "title": "Host",
+          "type": "string",
+          "required": true,
+          "default": "localhost",
+            "format": "hostname"
+        },
+        "port":{
+            "title":"Port",
+            "type": "integer",
+            "required": true,
+            "default": 6379
+        }
+        }
+    },
+    "thermostats": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties":{
+          "name": { 
+            "title": "Name",
+            "type": "string",
+            "placeholder": "Enter thermostat name...",
+            "default": "Thermostat",
+            "required": true
+          },
+          "identifier": {
+            "title": "Identifier",
+            "type": "string",
+            "placeholer": "Enter thermostat identifier...",
+            "default": "ABCD1234",
+            "required": true
+          }
+        }
       }
     }
-  }
+  },
+  "layout": [
+    "name",
+    "redis",
+    "redis.host",
+    "redis.port"
+    ,
+    {
+      "key": "thermostats",
+      "type": "array",
+      "orderable": false,
+      "buttonText": "Add Thermostat",
+      "items" : [
+        "thermostats[].name",
+        "thermostats[].identifier"
+      ]
+    }
+  ]
 }
