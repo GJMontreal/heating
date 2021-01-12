@@ -5,8 +5,9 @@ import { RedisConfig } from './config';
 import { deserialize } from 'class-transformer';
 
 import redis = require('redis');
+import {RedisClient} from 'redis';
 
-declare type RedisMessageHandler = (channel: string, value: any) => void;
+declare type RedisMessageHandler = (channel: string, value: string) => void;
 
 class TemperatureMessage {
   value: number;
@@ -60,8 +61,8 @@ export class HeatingAccessory {
 
   private messageDispatcher = new MessageDispatcher();
   private service: Service;
-  private subscriber: any; //I don't know what type redis subscribers are
-  private client: any;
+  private subscriber: RedisClient; //I don't know what type redis subscribers are
+  private client: RedisClient;
   private states = {
     HeatingCoolingState: this.platform.Characteristic.CurrentHeatingCoolingState.OFF,
     TargetHeatingCoolingState: this.platform.Characteristic.CurrentHeatingCoolingState.OFF,
@@ -145,7 +146,7 @@ export class HeatingAccessory {
 
   }
 
-  setupRedisSubscriber(subscriber: any) {
+  setupRedisSubscriber(subscriber: RedisClient) {
     subscriber.on('message', this.handleMessage.bind(this));
     const path = `/home/sensors/${this.accessory.context.device.identifier}`;
     let channel = `${path}/current_temperature`;
@@ -165,19 +166,19 @@ export class HeatingAccessory {
     this.messageDispatcher.addHandler(new MessageHandler('current_relative_humidity', this.handleCurrentRelativeHumidity.bind(this)));
   }
 
-  handleHeatingCoolingState(channel: string, message: any) {
+  handleHeatingCoolingState(channel: string, message: unknown) {
     const newValue = message as number;
     this.states.HeatingCoolingState = newValue;
     this.service.updateCharacteristic(this.platform.Characteristic.CurrentHeatingCoolingState, newValue);
   }
 
-  handleTargetHeatingCoolingState(message: any) {
+  handleTargetHeatingCoolingState(message: unknown) {
     const newValue = message as number;
     this.states.TargetHeatingCoolingState = newValue;
     this.service.updateCharacteristic(this.platform.Characteristic.TargetHeatingCoolingState, newValue);
   }
 
-  handleCurrentTemperature(channel: string, message: any) {
+  handleCurrentTemperature(channel: string, message: string) {
     const tempMessage = deserialize(TemperatureMessage, message);
     //homekit only handles .5 increments
     // var newValue = Math.round(tempMessage.value * 10 ) / 10 ;
@@ -193,7 +194,7 @@ export class HeatingAccessory {
     this.service.updateCharacteristic(this.platform.Characteristic.TargetTemperature, newValue);
   }
 
-  handleCurrentRelativeHumidity(channel: string, message: any){
+  handleCurrentRelativeHumidity(channel: string, message: string){
     const tempMessage = deserialize(TemperatureMessage, message);
     //homekit only handles .5 increments
     const newValue = Math.round(tempMessage.value * 10 ) / 10 ;
@@ -201,7 +202,7 @@ export class HeatingAccessory {
     this.service.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, newValue);
   }
 
-  handleMessage(channel: string, message: any ) {
+  handleMessage(channel: string, message: string ) {
     //we need some error checking  
     this.messageDispatcher.dispatchMessage(channel, message);
   }
