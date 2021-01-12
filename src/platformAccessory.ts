@@ -136,6 +136,12 @@ export class HeatingAccessory {
     this.client.get(channel,(err, reply)=>{
       this.handleTargetHeatingCoolingState(reply);
     });
+
+    channel = `${path}/heating_cooling_state`;
+    this.client.get(channel,(err, reply)=>{
+      this.handleHeatingCoolingState("",reply)
+    })
+
   }
 
   setupRedisSubscriber(subscriber: any) {
