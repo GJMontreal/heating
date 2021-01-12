@@ -115,7 +115,8 @@ export class HeatingAccessory {
 
     this.service.getCharacteristic(this.platform.Characteristic.TemperatureDisplayUnits)
       .on('get', this.getDisplayUnits.bind(this))
-      .on('set', this.setDisplayUnits.bind(this));
+      .on('set', this.setDisplayUnits.bind(this))
+      .setProps({minStep: 0.1});
 
     this.service.getCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity)
       .on('get', this.getCurrentRelativeHumidity.bind(this))
