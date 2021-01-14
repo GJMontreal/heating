@@ -60,6 +60,7 @@ export class HeatingAccessory {
   //host needs to be set in configuration
 
   private messageDispatcher = new MessageDispatcher();
+  private batteryService: Service;
   private service: Service;
   private subscriber: RedisClient; //I don't know what type redis subscribers are
   private client: RedisClient;
@@ -92,6 +93,14 @@ export class HeatingAccessory {
       .setCharacteristic(this.platform.Characteristic.Model, 'T-1')
       .setCharacteristic(this.platform.Characteristic.SerialNumber, '123ABC');
 
+
+    // this.accessory.addService(this.platform.Service.BatteryService, []);
+    // this.accessory.getService(this.platform.Service.BatteryService)!
+    //   .setCharacteristic(this.platform.Characteristic.BatteryLevel, 1)
+    this.batteryService = this.accessory.getService(this.platform.Service.BatteryService)!
+      .setCharacteristic(this.platform.Characteristic.StatusLowBattery,false)
+      .setCharacteristic(this.platform.Characteristic.BatteryLevel, 50); 
+    
     this.service = this.accessory.getService(this.platform.Service.Thermostat) 
     || this.accessory.addService(this.platform.Service.Thermostat);
     // set the service name, this is what is displayed as the default name on the Home app
@@ -165,7 +174,7 @@ export class HeatingAccessory {
     this.messageDispatcher.addHandler(new MessageHandler('current_temperature', this.handleCurrentTemperature.bind(this)));
     this.messageDispatcher.addHandler(new MessageHandler('current_relative_humidity', this.handleCurrentRelativeHumidity.bind(this)));
   }
-
+  //add handler for battery level
   handleHeatingCoolingState(channel: string, message: unknown) {
     const newValue = message as number;
     this.states.HeatingCoolingState = newValue;
@@ -182,14 +191,22 @@ export class HeatingAccessory {
     const tempMessage = deserialize(TemperatureMessage, message);
     //homekit only handles .5 increments
     // var newValue = Math.round(tempMessage.value * 10 ) / 10 ;
-    const newValue = tempMessage.value;
+    let newValue = tempMessage.value;
+    if (newValue == null) {
+      newValue =0.0;
+    }
+    // const newValue = tempMessage.value;
     this.states.CurrentTemperature = newValue;
     this.service.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, newValue);
   }
 
   handleTargetTemperature(message: string) {
     const tempMessage = deserialize(TemperatureMessage, message);
-    const newValue = tempMessage.value;
+    // let newValue = tempMessage;
+    let newValue =0.0;
+    if ( tempMessage != null ) {
+      newValue = tempMessage.value;
+    }
     this.states.TargetTemperature = newValue;
     this.service.updateCharacteristic(this.platform.Characteristic.TargetTemperature, newValue);
   }
