@@ -93,10 +93,6 @@ export class HeatingAccessory {
       .setCharacteristic(this.platform.Characteristic.Model, 'T-1')
       .setCharacteristic(this.platform.Characteristic.SerialNumber, '123ABC');
 
-
-    // this.accessory.addService(this.platform.Service.BatteryService, []);
-    // this.accessory.getService(this.platform.Service.BatteryService)!
-    //   .setCharacteristic(this.platform.Characteristic.BatteryLevel, 1)
     this.batteryService = this.accessory.getService(this.platform.Service.BatteryService)!
       .setCharacteristic(this.platform.Characteristic.StatusLowBattery,false)
       .setCharacteristic(this.platform.Characteristic.BatteryLevel, 50); 
