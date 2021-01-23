@@ -87,15 +87,23 @@ export class HeatingAccessory {
     } catch(error) {
       log.info(`couldn't connect to redis server${error}`);
     }
-    // set accessory information
+
     this.accessory.getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'BASH')
       .setCharacteristic(this.platform.Characteristic.Model, 'T-1')
       .setCharacteristic(this.platform.Characteristic.SerialNumber, '123ABC');
 
-    this.batteryService = this.accessory.getService(this.platform.Service.BatteryService)!
-      .setCharacteristic(this.platform.Characteristic.StatusLowBattery,false)
-      .setCharacteristic(this.platform.Characteristic.BatteryLevel, 50); 
+      //we should only add the battery service if it's not already there
+      var batteryService = this.accessory.getService(this.platform.Service.BatteryService);
+      if (batteryService == undefined) {
+        //add the service
+        batteryService = this.accessory.addService(this.platform.Service.BatteryService);
+      }
+      this.batteryService = batteryService
+    
+    // this.batteryService = this.accessory.getService(this.platform.Service.BatteryService)!
+    //   .setCharacteristic(this.platform.Characteristic.StatusLowBattery,false)
+    //   .setCharacteristic(this.platform.Characteristic.BatteryLevel, 50); 
     
     this.service = this.accessory.getService(this.platform.Service.Thermostat) 
     || this.accessory.addService(this.platform.Service.Thermostat);
