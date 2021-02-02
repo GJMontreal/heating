@@ -30,7 +30,7 @@ Beaglebone and relay board
 # Software
 This plugin contains no logic for control, it provides a UI for setting and reading the respective temperatures for each zone. I didn't want a monolithic piece of software, but rather something composed of much smaller parts, each of which I could experiment with and or replace. <br>
 Sensor data is sent to an MQTT broker (mosquitto in this case). A simple bridge written in python publishes these values to redis. The homebridge plugin reads and writes respective values to redis. Another script, again written in python, toggles the physical gpios based on these values.
-
+The bits circled in red are the ones I've written.
 
 ![software overview](img/software_overview.jpeg)
 ![software](img/ui.jpeg)
