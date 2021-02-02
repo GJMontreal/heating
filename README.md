@@ -9,14 +9,16 @@ First off check out the excellent Homebridge project which makes this possible. 
 
 [<img src=https://github.com/homebridge/branding/raw/master/logos/homebridge-wordmark-logo-vertical.png width="100"> ](https://github.com/homebridge)
 
-The philosophy guiding this project is straightforward: get it working then make improvements as needed.
+
+
+The philosophy guiding this project and its documentation is straightforward: get it working then make improvements as needed. Perfection is the enemy of progress.
 
 # Plumbing
 
 Overall the heating system is quite simple. A boiler is connected via a manifold with zone valves to a series of radiators. When a zone calls for heat, first the zone valve opens, and when that is complete, the boiler and pump are then turned on.
 
 ![plumbing overview](./img/plumbing_overview.jpeg)
-
+Manifold with zone valves
 ![manifold](./img/manifold.jpeg)
 
 # Electronics
@@ -34,17 +36,6 @@ Sensor data is sent to an MQTT broker (mosquitto in this case). A simple bridge 
 <img src="./img/IMG_2614.jpeg">
 <img src="./img/IMG_2612.jpeg">
 
-# Homebridge Platform Plugin Template
-
-This is a template Homebridge platform plugin and can be used as a base to help you get started developing your own plugin.
-
-This template should be use in conjunction with the [developer documentation](https://developers.homebridge.io/). A full list of all supported service types, and their characteristics is available on this site.
-
-## Clone As Template
-
-Click the link below to create a new GitHub Repository using this template, or click the *Use This Template* button above.
-
-<span align="center">
 
 ### [Create New Repository From Template](https://github.com/homebridge/homebridge-plugin-template/generate)
 
