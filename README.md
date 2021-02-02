@@ -1,13 +1,13 @@
 
 
-# A Homebridge plugin for hydronic heating
+# A Homebridge plugin for hydronic heating user interface
 <div align="center"><br>
 
-## Very much experimental. Your mileage may vary
+### Very much experimental. Your mileage may vary
 </div> <br>    
-First off check out the excellent Homebridge project which makes this possible.
+First off check out the excellent Homebridge project which makes this possible. This plugin serves as the UI for a series of virtual zone thermostats.
 
-[<img src=https://github.com/homebridge/branding/raw/master/logos/homebridge-wordmark-logo-vertical.png>](https://github.com/homebridge)
+[<img src=https://github.com/homebridge/branding/raw/master/logos/homebridge-wordmark-logo-vertical.png width="100"> ](https://github.com/homebridge)
 
 The philosophy guiding this project is straightforward: get it working then make improvements as needed.
 
