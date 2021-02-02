@@ -1,6 +1,8 @@
 # Ignore compiled code
 dist
 
+#VSCode related stuff
+.vscode/
 # ------------- Defaults ------------- #
 
 # Logs
