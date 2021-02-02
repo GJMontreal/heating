@@ -1,10 +1,38 @@
 
-<p align="center">
 
-<img src="https://github.com/homebridge/branding/raw/master/logos/homebridge-wordmark-logo-vertical.png" width="150">
+# A Homebridge plugin for hydronic heating
+<div align="center"><br>
 
-</p>
+## Very much experimental. Your mileage may vary
+</div> <br>    
+First off check out the excellent Homebridge project which makes this possible.
 
+[<img src=https://github.com/homebridge/branding/raw/master/logos/homebridge-wordmark-logo-vertical.png>](https://github.com/homebridge)
+
+The philosophy guiding this project is straightforward: get it working then make improvements as needed.
+
+# Plumbing
+
+Overall the heating system is quite simple. A boiler is connected via a manifold with zone valves to a series of radiators. When a zone calls for heat, first the zone valve opens, and when that is complete, the boiler and pump are then turned on.
+
+![plumbing overview](./img/plumbing_overview.jpeg)
+
+![manifold](./img/manifold.jpeg)
+
+# Electronics
+A beaglebone SBC running debian hosts all the software pieces as well as interfacing via GPIO to a relay board. The relays control the zone valves as well as the boiler
+
+![electronics overview](./img/electronics_overview.jpeg)
+![electronics](img/electronics.jpeg)
+# Software
+This plugin contains no logic for control, it provides a UI for setting and reading the respective temperatures for each zone. I didn't want a monolithic piece of software, but rather something composed of much smaller parts, each of which I could experiment with and or replace. <br>
+Sensor data is sent to an MQTT broker (mosquitto in this case). A simple bridge written in python publishes these values to redis. The homebridge plugin reads and writes respective values to redis. Another script, again written in python, toggles the physical gpios based on these values.
+
+![software overview](img/software_overview.jpeg)
+![software](img/ui.jpeg)
+
+<img src="./img/IMG_2614.jpeg">
+<img src="./img/IMG_2612.jpeg">
 
 # Homebridge Platform Plugin Template
 
