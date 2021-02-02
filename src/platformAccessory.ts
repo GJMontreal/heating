@@ -93,18 +93,15 @@ export class HeatingAccessory {
       .setCharacteristic(this.platform.Characteristic.Model, 'T-1')
       .setCharacteristic(this.platform.Characteristic.SerialNumber, '123ABC');
 
-      //we should only add the battery service if it's not already there
-      var batteryService = this.accessory.getService(this.platform.Service.BatteryService);
-      if (batteryService == undefined) {
-        //add the service
-        batteryService = this.accessory.addService(this.platform.Service.BatteryService);
-      }
-      this.batteryService = batteryService
-    
-    // this.batteryService = this.accessory.getService(this.platform.Service.BatteryService)!
-    //   .setCharacteristic(this.platform.Characteristic.StatusLowBattery,false)
-    //   .setCharacteristic(this.platform.Characteristic.BatteryLevel, 50); 
-    
+    //I'm absolutely unsure about whether this is the way to go
+    //we should only add the battery service if it's not already there
+    let batteryService = this.accessory.getService(this.platform.Service.BatteryService);
+    if (batteryService === undefined) {
+      //add the service
+      batteryService = this.accessory.addService(this.platform.Service.BatteryService);
+    }
+    this.batteryService = batteryService;
+
     this.service = this.accessory.getService(this.platform.Service.Thermostat) 
     || this.accessory.addService(this.platform.Service.Thermostat);
     // set the service name, this is what is displayed as the default name on the Home app
@@ -178,6 +175,7 @@ export class HeatingAccessory {
     this.messageDispatcher.addHandler(new MessageHandler('current_temperature', this.handleCurrentTemperature.bind(this)));
     this.messageDispatcher.addHandler(new MessageHandler('current_relative_humidity', this.handleCurrentRelativeHumidity.bind(this)));
   }
+  
   //add handler for battery level
   handleHeatingCoolingState(channel: string, message: unknown) {
     const newValue = message as number;
@@ -196,7 +194,7 @@ export class HeatingAccessory {
     //homekit only handles .5 increments
     // var newValue = Math.round(tempMessage.value * 10 ) / 10 ;
     let newValue = tempMessage.value;
-    if (newValue == null) {
+    if (newValue === null) {
       newValue =0.0;
     }
     // const newValue = tempMessage.value;
@@ -208,7 +206,7 @@ export class HeatingAccessory {
     const tempMessage = deserialize(TemperatureMessage, message);
     // let newValue = tempMessage;
     let newValue =0.0;
-    if ( tempMessage != null ) {
+    if ( tempMessage !== null ) {
       newValue = tempMessage.value;
     }
     this.states.TargetTemperature = newValue;
