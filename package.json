@@ -1,9 +1,9 @@
 {
   "private": true,
-  "displayName": "Central Heating",
-  "name": "homebridge-central-heating",
+  "displayName": "Hydronic Heating",
+  "name": "homebridge-hydronic-heating",
   "version": "1.0.0",
-  "description": "Whole home heating control",
+  "description": "Hydronic heating control",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
@@ -25,7 +25,8 @@
   },
   "keywords": [
     "homebridge-plugin",
-    "heating"
+    "heating",
+    "hydronic"
   ],
   "dependencies": {
     "class-transformer": "^0.3.1",

@@ -1,7 +1,7 @@
 import { API, DynamicPlatformPlugin, Logger, PlatformAccessory, PlatformConfig, Service, Characteristic } from 'homebridge';
 
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings';
-import { HeatingAccessory } from './platformAccessory';
+import { ThermostatAccessory } from './thermostatAccessory';
 import { RedisConfig, ThermostatConfig} from './config';
 
 // import { platform } from 'os';
@@ -12,18 +12,20 @@ import { RedisConfig, ThermostatConfig} from './config';
  * parse the user config and discover/register accessories with Homebridge.
  */
 
-export class HeatingPlatform implements DynamicPlatformPlugin {
+export class HydronicHeating implements DynamicPlatformPlugin {
   public readonly Service: typeof Service = this.api.hap.Service;
   public readonly Characteristic: typeof Characteristic = this.api.hap.Characteristic;
-
   // this is used to track restored cached accessories
   public readonly accessories: PlatformAccessory[] = [];
+  
+  connectionProblem = new Error('Connecting...');
 
   constructor(
     public readonly log: Logger,
     public readonly config: PlatformConfig,
     public readonly api: API,
   ) {
+    
     this.log.debug('Finished initializing platform:', this.config.name);
     this.log.debug('config', this.config);
     // When this event is fired it means Homebridge has restored all cached accessories from disk.
@@ -38,7 +40,6 @@ export class HeatingPlatform implements DynamicPlatformPlugin {
       }
       // run the method to discover / register your devices as accessories
       this.discoverDevices(this.config.thermostats as [ThermostatConfig], this.config.redis as RedisConfig);
-      this.discoverThermostats(this.config.thermostats as [ThermostatConfig]);
     });
   }
 
@@ -52,9 +53,10 @@ export class HeatingPlatform implements DynamicPlatformPlugin {
     this.accessories.push(accessory);
   }
 
+  //this needs improvement
   discoverThermostats(thermostats: [ThermostatConfig]) {
     thermostats.forEach( thermostatConfig => {
-      this.log.info('thermostat: ', thermostatConfig.identifier);
+      this.log.info('thermostat: ', thermostatConfig.path);
     });
   }
 
@@ -63,7 +65,7 @@ export class HeatingPlatform implements DynamicPlatformPlugin {
     // for (const device of thermostats) {
     thermostats.forEach(thermostatConfig =>{
       
-      const uuid = this.api.hap.uuid.generate(thermostatConfig?.identifier);
+      const uuid = this.api.hap.uuid.generate(thermostatConfig?.path);
 
       // see if an accessory with the same uuid has already been registered and restored from
       // the cached devices we stored in the `configureAccessory` method above
@@ -80,7 +82,7 @@ export class HeatingPlatform implements DynamicPlatformPlugin {
 
         // create the accessory handler for the restored accessory
         // this is imported from `platformAccessory.ts`
-        new HeatingAccessory(this, existingAccessory, this.log, redisConfig);
+        new ThermostatAccessory(this, existingAccessory, this.log, redisConfig);
           
         // update accessory cache with any changes to the accessory details and information
         this.api.updatePlatformAccessories([existingAccessory]);
@@ -99,7 +101,7 @@ export class HeatingPlatform implements DynamicPlatformPlugin {
         // store a copy of the device object in the `accessory.context`
         // the `context` property can be used to store any data about the accessory you may need
         accessory.context.device = thermostatConfig;
-        new HeatingAccessory(this, accessory, this.log, redisConfig);
+        new ThermostatAccessory(this, accessory, this.log, redisConfig);
 
         // link the accessory to your platform
         this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);

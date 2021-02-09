@@ -1,6 +1,6 @@
 export interface ThermostatConfig {
   name: string;
-  identifier: string;
+  path: string;
 }
 
 export interface RedisConfig {
