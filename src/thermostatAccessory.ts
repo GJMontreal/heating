@@ -19,7 +19,7 @@ export class ThermostatAccessory {
 
   private messageDispatcher: MessageDispatcher;
   private service: Service;
-  private subscriber: RedisClient; //I don't know what type redis subscribers are
+  private subscriber: RedisClient; 
   private client: RedisClient;
   private states = {
     HeatingCoolingState: this.platform.Characteristic.CurrentHeatingCoolingState.OFF,
