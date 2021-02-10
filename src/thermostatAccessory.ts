@@ -18,7 +18,6 @@ import {RedisClient} from 'redis';
 export class ThermostatAccessory {
 
   private messageDispatcher: MessageDispatcher;
-  private batteryService: Service;
   private service: Service;
   private subscriber: RedisClient; //I don't know what type redis subscribers are
   private client: RedisClient;
@@ -50,15 +49,6 @@ export class ThermostatAccessory {
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'BASH')
       .setCharacteristic(this.platform.Characteristic.Model, 'T-1')
       .setCharacteristic(this.platform.Characteristic.SerialNumber, '123ABC');
-
-    //I'm absolutely unsure about whether this is the way to go
-    //we should only add the battery service if it's not already there
-    let batteryService = this.accessory.getService(this.platform.Service.BatteryService);
-    if (batteryService === undefined) {
-      //add the service
-      batteryService = this.accessory.addService(this.platform.Service.BatteryService);
-    }
-    this.batteryService = batteryService;
 
     this.service = this.accessory.getService(this.platform.Service.Thermostat) 
     || this.accessory.addService(this.platform.Service.Thermostat);
