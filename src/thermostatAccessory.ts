@@ -5,21 +5,9 @@ import { RedisConfig } from './config';
 
 import { deserialize } from 'class-transformer';
 import { MessageHandler, MessageDispatcher } from './messageHandler';
+import { TemperatureMessage } from './messageTypes';
 import redis = require('redis');
 import {RedisClient} from 'redis';
-
-class TemperatureMessage {
-  value: number;
-  units: string;
-
-  constructor (
-    value: number,
-    units: string,
-  ){
-    this.units = units;
-    this.value = value;
-  }
-}
 
 /**
  * Platform Accessory
