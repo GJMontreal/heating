@@ -65,7 +65,7 @@
       "buttonText": "Add Thermostat",
       "items" : [
         "thermostats[].name",
-        "thermostats[].identifier"
+        "thermostats[].path"
       ]
     }
   ]
