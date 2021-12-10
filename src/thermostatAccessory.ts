@@ -19,6 +19,7 @@ export class ThermostatAccessory {
 
   private messageDispatcher: MessageDispatcher;
   private service: Service;
+  private batteryService: Service;
   private subscriber: RedisClient; 
   private client: RedisClient;
   private states = {
@@ -54,6 +55,9 @@ export class ThermostatAccessory {
     this.service = this.accessory.getService(this.platform.Service.Thermostat) 
     || this.accessory.addService(this.platform.Service.Thermostat);
     
+    this.batteryService = this.accessory.getService(this.platform.Service.BatteryService)
+    || this.accessory.addService(this.platform.Service.BatteryService);
+
     // set the service name, this is what is displayed as the default name on the Home app
     // in this example we are using the name we stored in the `accessory.context` in the `discoverDevices` method.
     this.service.setCharacteristic(this.platform.Characteristic.Name, accessory.context.device.name);
@@ -83,7 +87,7 @@ export class ThermostatAccessory {
     this.service.getCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity)
       .on('get', this.getCurrentRelativeHumidity.bind(this));
     
-    this.service.getCharacteristic(this.platform.Characteristic.BatteryLevel)
+    this.batteryService.getCharacteristic(this.platform.Characteristic.BatteryLevel)
       .on('get', this.getCurrentBatteryLevel.bind(this));
 
     this.setupRedisSubscriber(this.subscriber);
@@ -191,7 +195,7 @@ export class ThermostatAccessory {
     }
     
     this.states.CurrentBatteryLevel = newValue;
-    this.service.updateCharacteristic(this.platform.Characteristic.BatteryLevel, newValue);
+    this.batteryService.updateCharacteristic(this.platform.Characteristic.BatteryLevel, newValue);
   }
 
   handleMessage(channel: string, message: string ) {
@@ -230,7 +234,6 @@ export class ThermostatAccessory {
   }
 
   getCurrentBatteryLevel(callback: CharacteristicGetCallback) {
-    this.log.debug('getting battery level');
     callback(null, this.states.CurrentBatteryLevel);
   }
 
