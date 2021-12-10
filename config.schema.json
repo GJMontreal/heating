@@ -1,5 +1,5 @@
 {
-  "pluginAlias": "CentralHeating",
+  "pluginAlias": "HydronicHeating",
   "pluginType": "platform",
   "headerDisplay": "Thermostats are exposed as individual accessories",
   "singular": true,
@@ -8,7 +8,7 @@
       "title": "Name",
       "type": "string",
       "required": true,
-      "default": "Central Heating" 
+      "default": "Hydronic Heating" 
     },
     "redis":{
         "title":"Redis Server",
@@ -41,11 +41,11 @@
             "default": "Thermostat",
             "required": true
           },
-          "identifier": {
-            "title": "Identifier",
+          "path": {
+            "title": "Device Path",
             "type": "string",
-            "placeholer": "Enter thermostat identifier...",
-            "default": "ABCD1234",
+            "placeholer": "Enter sensor path...",
+            "default": "/home/sensors/ABCD1234",
             "required": true
           }
         }

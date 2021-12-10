@@ -1,14 +1,12 @@
-import { Service, PlatformAccessory, Logger, CharacteristicValue, CharacteristicSetCallback, CharacteristicGetCallback } from 'homebridge';
+import { Service, PlatformAccessory, Logger, CharacteristicValue, 
+  CharacteristicSetCallback, CharacteristicGetCallback } from 'homebridge';
 import { HeatingPlatform } from './platform';
 import { RedisConfig } from './config';
 
 import { deserialize } from 'class-transformer';
-
+import { MessageHandler, MessageDispatcher } from './messageHandler';
 import redis = require('redis');
 import {RedisClient} from 'redis';
-
-declare type RedisMessageHandler = (channel: string, value: string) => void;
-
 class TemperatureMessage {
   value: number;
   units: string;
@@ -21,36 +19,6 @@ class TemperatureMessage {
     this.value = value;
   }
 }
-class MessageHandler {
-  constructor (
-  readonly channel: string,
-  readonly handler: RedisMessageHandler,
-  ){
-
-  }
-
-  execute(message: string) {
-    this.handler(this.channel, message);
-  }
-}
-
-class MessageDispatcher {
-  private handlers = {};
-
-  addHandler(handler: MessageHandler) {
-    this.handlers[handler.channel] = handler;
-  }
-
-  dispatchMessage(channel: string, message: string){
-    const channelParts = channel.split('/');
-    const handler = this.handlers[channelParts.slice(-1)[0]];
-    if(handler !== null){
-      handler.execute(message);
-    } else {
-      console.log(`unhandled channel: ${channelParts.slice(-1)[0]} message: ${message}`);
-    }
-  }
-}
 /**
  * Platform Accessory
  * An instance of this class is created for each accessory your platform registers
@@ -59,7 +27,7 @@ class MessageDispatcher {
 export class HeatingAccessory {
   //host needs to be set in configuration
 
-  private messageDispatcher = new MessageDispatcher();
+  private messageDispatcher: MessageDispatcher; // = new MessageDispatcher();
   private batteryService: Service;
   private service: Service;
   private subscriber: RedisClient; //I don't know what type redis subscribers are
@@ -80,12 +48,12 @@ export class HeatingAccessory {
     public readonly log: Logger,
     private readonly redisConfig: RedisConfig,
   ) {
-    //this needs to be wrapped in a try handler
+    this.messageDispatcher = new MessageDispatcher(this.log);
     try{
       this.subscriber = redis.createClient(redisConfig.port, redisConfig.host);
       this.client = redis.createClient(redisConfig.port, redisConfig.host);
     } catch(error) {
-      log.info(`couldn't connect to redis server${error}`);
+      this.platform.log.info(`couldn't connect to redis server${error}`);
     }
 
     this.accessory.getService(this.platform.Service.AccessoryInformation)!
@@ -93,18 +61,15 @@ export class HeatingAccessory {
       .setCharacteristic(this.platform.Characteristic.Model, 'T-1')
       .setCharacteristic(this.platform.Characteristic.SerialNumber, '123ABC');
 
-      //we should only add the battery service if it's not already there
-      var batteryService = this.accessory.getService(this.platform.Service.BatteryService);
-      if (batteryService == undefined) {
-        //add the service
-        batteryService = this.accessory.addService(this.platform.Service.BatteryService);
-      }
-      this.batteryService = batteryService
-    
-    // this.batteryService = this.accessory.getService(this.platform.Service.BatteryService)!
-    //   .setCharacteristic(this.platform.Characteristic.StatusLowBattery,false)
-    //   .setCharacteristic(this.platform.Characteristic.BatteryLevel, 50); 
-    
+    //I'm absolutely unsure about whether this is the way to go
+    //we should only add the battery service if it's not already there
+    let batteryService = this.accessory.getService(this.platform.Service.BatteryService);
+    if (batteryService === undefined) {
+      //add the service
+      batteryService = this.accessory.addService(this.platform.Service.BatteryService);
+    }
+    this.batteryService = batteryService;
+
     this.service = this.accessory.getService(this.platform.Service.Thermostat) 
     || this.accessory.addService(this.platform.Service.Thermostat);
     // set the service name, this is what is displayed as the default name on the Home app
@@ -141,7 +106,8 @@ export class HeatingAccessory {
   }
 
   getLastValues() {
-    const path = `/home/sensors/${this.accessory.context.device.identifier}`;
+    const path = this.accessory.context.device.path;
+
     let channel = `${path}/target_temperature`;
     this.client.get(channel, (err, reply)=>{
       this.handleTargetTemperature(reply);
@@ -156,28 +122,28 @@ export class HeatingAccessory {
     this.client.get(channel, (err, reply)=>{
       this.handleHeatingCoolingState('', reply);
     });
-
   }
 
   setupRedisSubscriber(subscriber: RedisClient) {
     subscriber.on('message', this.handleMessage.bind(this));
-    const path = `/home/sensors/${this.accessory.context.device.identifier}`;
+    const path = this.accessory.context.device.path;
+
     let channel = `${path}/current_temperature`;
     subscriber.subscribe(channel);
+    this.messageDispatcher.addHandler(new MessageHandler(channel, this.handleCurrentTemperature.bind(this)));
     this.log.debug(`${this.accessory.displayName} subscribing ${channel}`);
 
     channel = `${path}/heating_cooling_state`;
     subscriber.subscribe(channel);
+    this.messageDispatcher.addHandler(new MessageHandler(channel, this.handleHeatingCoolingState.bind(this)));
     this.log.debug(`${this.accessory.displayName} subscribing ${channel}`);
 
     channel = `${path}/current_relative_humidity`;
     subscriber.subscribe(channel);
+    this.messageDispatcher.addHandler(new MessageHandler(channel, this.handleCurrentRelativeHumidity.bind(this)));
     this.log.debug(`${this.accessory.displayName} subscribing ${channel}`);
-   
-    this.messageDispatcher.addHandler(new MessageHandler('heating_cooling_state', this.handleHeatingCoolingState.bind(this)));
-    this.messageDispatcher.addHandler(new MessageHandler('current_temperature', this.handleCurrentTemperature.bind(this)));
-    this.messageDispatcher.addHandler(new MessageHandler('current_relative_humidity', this.handleCurrentRelativeHumidity.bind(this)));
   }
+
   //add handler for battery level
   handleHeatingCoolingState(channel: string, message: unknown) {
     const newValue = message as number;
@@ -193,22 +159,23 @@ export class HeatingAccessory {
 
   handleCurrentTemperature(channel: string, message: string) {
     const tempMessage = deserialize(TemperatureMessage, message);
-    //homekit only handles .5 increments
+    //homekit accepts step of .1 - why isn't that working?
     // var newValue = Math.round(tempMessage.value * 10 ) / 10 ;
     let newValue = tempMessage.value;
-    if (newValue == null) {
-      newValue =0.0;
+    if (newValue === null) {
+      newValue = 0.0;
     }
     // const newValue = tempMessage.value;
-    this.states.CurrentTemperature = newValue;
-    this.service.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, newValue);
+    this.states.CurrentTemperature = newValue as number;
+    const floatValue = newValue as number;
+    this.service.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, floatValue);
   }
 
   handleTargetTemperature(message: string) {
     const tempMessage = deserialize(TemperatureMessage, message);
     // let newValue = tempMessage;
     let newValue =0.0;
-    if ( tempMessage != null ) {
+    if ( tempMessage !== null ) {
       newValue = tempMessage.value;
     }
     this.states.TargetTemperature = newValue;
@@ -239,7 +206,7 @@ export class HeatingAccessory {
   setTargetHeatingCoolingState(value: CharacteristicValue, callback: CharacteristicSetCallback) {
     this.states.TargetHeatingCoolingState = value as number;
     
-    const path = `/home/sensors/${this.accessory.context.device.identifier}`;
+    const path = this.accessory.context.device.path;
     const channel = `${path}/target_heatingcooling_state`;
 
     const message = value as number;
@@ -250,6 +217,7 @@ export class HeatingAccessory {
   }
 
   getCurrentTemperature(callback: CharacteristicGetCallback) {
+    // callback(this.platform.connectionProblem); can we have a more specific error message?
     callback(null, this.states.CurrentTemperature);
   }
 
@@ -261,7 +229,7 @@ export class HeatingAccessory {
 
     this.states.TargetTemperature = value as number;
 
-    const path = `/home/sensors/${this.accessory.context.device.identifier}`;
+    const path = this.accessory.context.device.path;
     const channel = `${path}/target_temperature`;
 
     const message = JSON.stringify(new TemperatureMessage(value as number, 'C'));
