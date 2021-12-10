@@ -24,10 +24,11 @@ export class ThermostatAccessory {
   private states = {
     HeatingCoolingState: this.platform.Characteristic.CurrentHeatingCoolingState.OFF,
     TargetHeatingCoolingState: this.platform.Characteristic.CurrentHeatingCoolingState.OFF,
-    CurrentTemperature: 20,
+    CurrentTemperature: 0,
     TargetTemperature: 20,
     DisplayUnits: this.platform.Characteristic.TemperatureDisplayUnits.CELSIUS,
-    CurrentRelativeHumidity: 30,
+    CurrentRelativeHumidity: 0,
+    CurrentBatteryLevel: 0,
   };
 
   //we need to pass in information about the redis server
@@ -81,6 +82,9 @@ export class ThermostatAccessory {
     this.service.getCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity)
       .on('get', this.getCurrentRelativeHumidity.bind(this));
     
+    this.service.getCharacteristic(this.platform.Characteristic.BatteryLevel)
+      .on('get', this.getCurrentBatteryLevel.bind(this));
+
     this.setupRedisSubscriber(this.subscriber);
     this.getLastValues();
   }
@@ -121,6 +125,11 @@ export class ThermostatAccessory {
     channel = `${path}/current_relative_humidity`;
     subscriber.subscribe(channel);
     this.messageDispatcher.addHandler(new MessageHandler(channel, this.handleCurrentRelativeHumidity.bind(this)));
+    this.log.debug(`${this.accessory.displayName} subscribing ${channel}`);
+
+    channel = `${path}/current_battery_level`;
+    subscriber.subscribe(channel);
+    this.messageDispatcher.addHandler(new MessageHandler(channel, this.handleCurrentBatteryLevel.bind(this)));
     this.log.debug(`${this.accessory.displayName} subscribing ${channel}`);
   }
 
@@ -170,6 +179,18 @@ export class ThermostatAccessory {
     this.service.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, newValue);
   }
 
+  handleCurrentBatteryLevel(channel: string, message: string){
+    const tempMessage = deserialize(TemperatureMessage, message);
+    let newValue = tempMessage.value;
+    
+    if (newValue === null) {
+      newValue = 0.0;
+    }
+    
+    this.states.CurrentBatteryLevel = newValue as number;
+    this.service.updateCharacteristic(this.platform.Characteristic.BatteryLevel, newValue);
+  }
+
   handleMessage(channel: string, message: string ) {
     //we need some error checking  
     this.messageDispatcher.dispatchMessage(channel, message);
@@ -203,6 +224,10 @@ export class ThermostatAccessory {
 
   getCurrentRelativeHumidity(callback: CharacteristicGetCallback) {
     callback(null, this.states.CurrentRelativeHumidity);
+  }
+
+  getCurrentBatteryLevel(callback: CharacteristicGetCallback) {
+    callback(null, this.states.CurrentBatteryLevel);
   }
 
   setTargetTemperature(value: CharacteristicValue, callback: CharacteristicSetCallback) {
