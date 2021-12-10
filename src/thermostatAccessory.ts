@@ -28,7 +28,7 @@ export class ThermostatAccessory {
     TargetTemperature: 20,
     DisplayUnits: this.platform.Characteristic.TemperatureDisplayUnits.CELSIUS,
     CurrentRelativeHumidity: 0,
-    CurrentBatteryLevel: 0,
+    CurrentBatteryLevel: 100,
   };
 
   //we need to pass in information about the redis server
@@ -53,7 +53,7 @@ export class ThermostatAccessory {
 
     this.service = this.accessory.getService(this.platform.Service.Thermostat) 
     || this.accessory.addService(this.platform.Service.Thermostat);
-  
+    
     // set the service name, this is what is displayed as the default name on the Home app
     // in this example we are using the name we stored in the `accessory.context` in the `discoverDevices` method.
     this.service.setCharacteristic(this.platform.Characteristic.Name, accessory.context.device.name);
@@ -181,14 +181,16 @@ export class ThermostatAccessory {
   }
 
   handleCurrentBatteryLevel(channel: string, message: string){
+    //what happens if the deserialization fails? 
     const tempMessage = deserialize(TemperatureMessage, message);
+  
     let newValue = tempMessage.value;
     
-    if (newValue === null) {
-      newValue = 0.0;
+    if (newValue === undefined) {
+      newValue = 0;
     }
     
-    this.states.CurrentBatteryLevel = newValue as number;
+    this.states.CurrentBatteryLevel = newValue;
     this.service.updateCharacteristic(this.platform.Characteristic.BatteryLevel, newValue);
   }
 
@@ -228,6 +230,7 @@ export class ThermostatAccessory {
   }
 
   getCurrentBatteryLevel(callback: CharacteristicGetCallback) {
+    this.log.debug('getting battery level');
     callback(null, this.states.CurrentBatteryLevel);
   }
 
