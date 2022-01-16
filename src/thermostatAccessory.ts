@@ -20,6 +20,7 @@ export class ThermostatAccessory {
   private messageDispatcher: MessageDispatcher;
   private service: Service;
   private batteryService: Service;
+  private boostService: Service;
   private subscriber: RedisClient; 
   private client: RedisClient;
   private states = {
@@ -30,6 +31,7 @@ export class ThermostatAccessory {
     DisplayUnits: this.platform.Characteristic.TemperatureDisplayUnits.CELSIUS,
     CurrentRelativeHumidity: 0,
     CurrentBatteryLevel: 100,
+    BoostMode: false,
   };
 
   //we need to pass in information about the redis server
@@ -89,6 +91,10 @@ export class ThermostatAccessory {
     
     this.batteryService.getCharacteristic(this.platform.Characteristic.BatteryLevel)
       .on('get', this.getCurrentBatteryLevel.bind(this));
+
+    this.boostService.getCharacteristic(this.platform.Characteristic.On)
+      .on('get', this.getBoostMode.bind(this))
+      .on('set', this.setBoostMode.bind(this));
 
     this.setupRedisSubscriber(this.subscriber);
     this.getLastValues();
@@ -195,7 +201,17 @@ export class ThermostatAccessory {
     }
     
     this.states.CurrentBatteryLevel = newValue;
+
     this.batteryService.updateCharacteristic(this.platform.Characteristic.BatteryLevel, newValue);
+    this.batteryService.updateCharacteristic(this.platform.Characteristic.ChargingState, 
+      this.platform.Characteristic.ChargingState.NOT_CHARGEABLE);
+    
+    let batteryStatus = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL; 
+    if (newValue < 15){
+      batteryStatus = this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
+    } 
+    this.batteryService.updateCharacteristic(this.platform.Characteristic.StatusLowBattery,
+      batteryStatus);
   }
 
   handleMessage(channel: string, message: string ) {
@@ -237,6 +253,10 @@ export class ThermostatAccessory {
     callback(null, this.states.CurrentBatteryLevel);
   }
 
+  getBatteryChargingState(callback: CharacteristicGetCallback) {
+    callback(null, this.platform.Characteristic.ChargingState.NOT_CHARGEABLE);
+  }
+
   setTargetTemperature(value: CharacteristicValue, callback: CharacteristicSetCallback) {
 
     this.states.TargetTemperature = value as number;
@@ -263,5 +283,20 @@ export class ThermostatAccessory {
   getDisplayUnits(callback: CharacteristicGetCallback) {
     callback(null, this.states.DisplayUnits);
   }
+  
+  setBoostMode(value: CharacteristicValue, callback: CharacteristicSetCallback) {
+    this.states.BoostMode = value as boolean;
+    
+    const path = this.accessory.context.device.path;
+    const channel = `${path}/boost`;
 
+    const message = `${this.states.BoostMode}`;
+
+    this.client.set(channel, message);
+    callback(null);
+  }
+
+  getBoostMode(callback: CharacteristicGetCallback) {
+    callback(null, this.states.BoostMode);
+  }
 }

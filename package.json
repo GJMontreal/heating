@@ -2,7 +2,7 @@
   "private": true,
   "displayName": "Hydronic Heating",
   "name": "homebridge-hydronic-heating",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Hydronic heating control",
   "license": "Apache-2.0",
   "repository": {
