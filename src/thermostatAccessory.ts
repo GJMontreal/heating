@@ -60,6 +60,9 @@ export class ThermostatAccessory {
     this.batteryService = this.accessory.getService(this.platform.Service.BatteryService)
     || this.accessory.addService(this.platform.Service.BatteryService);
 
+    this.boostService = this.accessory.getService(this.platform.Service.Switch) 
+    || this.accessory.addService(this.platform.Service.Switch);
+
     // set the service name, this is what is displayed as the default name on the Home app
     // in this example we are using the name we stored in the `accessory.context` in the `discoverDevices` method.
     this.service.setCharacteristic(this.platform.Characteristic.Name, accessory.context.device.name);
